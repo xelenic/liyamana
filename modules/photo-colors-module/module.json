@@ -1,0 +1,12 @@
+{
+  "name": "photo-colors-module",
+  "label": "Photo Colors Editor",
+  "version": "1.0.0",
+  "author": "FlipBook",
+  "provides": ["image_properties_panel"],
+  "image_properties_panel": {
+    "view": "image-color-panel",
+    "label": "Image Color",
+    "icon": "fa-adjust"
+  }
+}

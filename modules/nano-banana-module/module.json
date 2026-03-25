@@ -1,0 +1,1 @@
+{"name":"nano-banana-module","label":"AI Image Templates","version":"1.0.0","author":"FlipBook","provides":["admin_menu","settings"],"admin_menu":{"label":"AI Image Template","icon":"fa-magic","route":"admin.nanobanana.templates.index"}}
