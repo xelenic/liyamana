@@ -1,0 +1,11 @@
+{
+  "name": "payhere-module",
+  "label": "PayHere Payment Gateway",
+  "version": "1.0.0",
+  "author": "FlipBook",
+  "provides": ["payment_gateway", "routes"],
+  "payment_gateway": {
+    "id": "payhere",
+    "class": "Modules\\PayHereModule\\PayHerePaymentGateway"
+  }
+}
