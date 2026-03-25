@@ -1,0 +1,23 @@
+{
+  "name": "picture-module",
+  "label": "Picture Gallery",
+  "version": "1.0.0",
+  "author": "FlipBook",
+  "provides": ["editor_elements", "routes", "admin_menu"],
+  "editor_elements": [
+    {
+      "id": "picture_gallery",
+      "label": "Picture Gallery",
+      "icon": "fa-images",
+      "description": "Insert from picture gallery",
+      "handler": "addPictureFromGallery",
+      "panel": "elements"
+    }
+  ],
+  "admin_menu": {
+    "label": "Picture Gallery",
+    "icon": "fa-images",
+    "route": "picture.gallery.index",
+    "parent": null
+  }
+}
