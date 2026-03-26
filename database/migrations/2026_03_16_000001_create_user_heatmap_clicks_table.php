@@ -18,9 +18,20 @@ return new class extends Migration
             $table->unsignedSmallInteger('viewport_h')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
-            $table->index(['user_id', 'path']);
             $table->index(['user_id', 'created_at']);
         });
+
+        // MySQL/MariaDB: utf8mb4 index byte limit — full (user_id, path) exceeds 3072 bytes when path is 1024 chars.
+        $driver = Schema::getConnection()->getDriverName();
+        if (in_array($driver, ['mysql', 'mariadb'], true)) {
+            Schema::table('user_heatmap_clicks', function (Blueprint $table) {
+                $table->rawIndex('user_id, path(191)', 'user_heatmap_clicks_user_id_path_index');
+            });
+        } else {
+            Schema::table('user_heatmap_clicks', function (Blueprint $table) {
+                $table->index(['user_id', 'path'], 'user_heatmap_clicks_user_id_path_index');
+            });
+        }
     }
 
     public function down(): void
