@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('thumbnail', 512)->nullable();
             $table->timestamps();
 
-            $table->index(['user_id', 'created_at']);
-            $table->index(['user_id', 'ai_content_template_id', 'created_at']);
+            $table->index(['user_id', 'created_at'], 'acg_user_created_idx');
+            $table->index(['user_id', 'ai_content_template_id', 'created_at'], 'acg_user_tpl_created_idx');
         });
     }
 
