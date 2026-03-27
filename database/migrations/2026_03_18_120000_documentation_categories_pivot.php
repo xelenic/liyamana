@@ -10,9 +10,13 @@ return new class extends Migration
     {
         Schema::create('documentation_documentation_category', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('documentation_id')->constrained('documentations')->cascadeOnDelete();
-            $table->foreignId('documentation_category_id')->constrained('documentation_categories')->cascadeOnDelete();
-            $table->unique(['documentation_id', 'documentation_category_id']);
+            $table->unsignedBigInteger('documentation_id');
+            $table->unsignedBigInteger('documentation_category_id');
+            $table->foreign('documentation_id', 'doc_doc_cat_doc_fk')
+                ->references('id')->on('documentations')->cascadeOnDelete();
+            $table->foreign('documentation_category_id', 'doc_doc_cat_cat_fk')
+                ->references('id')->on('documentation_categories')->cascadeOnDelete();
+            $table->unique(['documentation_id', 'documentation_category_id'], 'doc_doc_cat_pair_uidx');
             $table->timestamps();
         });
 
