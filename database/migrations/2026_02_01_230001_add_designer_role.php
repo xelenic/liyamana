@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 return new class extends Migration
@@ -13,9 +12,11 @@ return new class extends Migration
     {
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        if (!Role::where('name', 'designer')->where('guard_name', 'web')->exists()) {
-            Role::create(['name' => 'designer', 'guard_name' => 'web']);
-        }
+        // Do not use Role::create() — Spatie throws if the role exists; use the query builder.
+        Role::query()->firstOrCreate(
+            ['name' => 'designer', 'guard_name' => 'web'],
+            []
+        );
     }
 
     /**

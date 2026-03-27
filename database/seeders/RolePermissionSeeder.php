@@ -12,6 +12,9 @@ class RolePermissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * Never use Role::create() / Permission::create() — Spatie overrides them and throws
+     * if the row exists. Use query()->create() after an exists check, or query()->firstOrCreate().
      */
     public function run(): void
     {
@@ -47,14 +50,14 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => $guard]);
+            $this->ensurePermission($permission, $guard);
         }
 
-        // Create roles
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => $guard]);
-        $userRole = Role::firstOrCreate(['name' => 'user', 'guard_name' => $guard]);
-        $premiumRole = Role::firstOrCreate(['name' => 'premium', 'guard_name' => $guard]);
-        Role::firstOrCreate(['name' => 'designer', 'guard_name' => $guard]); // Approved designers can save public templates
+        // Create roles (designer may already exist from migration 2026_02_01_230001_add_designer_role)
+        $adminRole = $this->ensureRole('admin', $guard);
+        $userRole = $this->ensureRole('user', $guard);
+        $premiumRole = $this->ensureRole('premium', $guard);
+        $this->ensureRole('designer', $guard);
 
         // Assign all permissions to admin
         $adminRole->syncPermissions(Permission::where('guard_name', $guard)->get());
@@ -104,5 +107,21 @@ class RolePermissionSeeder extends Seeder
             ]
         );
         $premium->assignRole('premium');
+    }
+
+    private function ensurePermission(string $name, string $guard): void
+    {
+        Permission::query()->firstOrCreate(
+            ['name' => $name, 'guard_name' => $guard],
+            []
+        );
+    }
+
+    private function ensureRole(string $name, string $guard): Role
+    {
+        return Role::query()->firstOrCreate(
+            ['name' => $name, 'guard_name' => $guard],
+            []
+        );
     }
 }
