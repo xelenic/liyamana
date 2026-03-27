@@ -24,6 +24,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('ai_content_templates');
+        Schema::disableForeignKeyConstraints();
+
+        try {
+            Schema::dropIfExists('ai_content_templates');
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
     }
 };
