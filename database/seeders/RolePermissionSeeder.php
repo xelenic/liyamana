@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class RolePermissionSeeder extends Seeder
 {
@@ -17,6 +17,8 @@ class RolePermissionSeeder extends Seeder
     {
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $guard = config('auth.defaults.guard', 'web');
 
         // Create permissions
         $permissions = [
@@ -45,27 +47,27 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => $guard]);
         }
 
         // Create roles
-        $adminRole = Role::create(['name' => 'admin']);
-        $userRole = Role::create(['name' => 'user']);
-        $premiumRole = Role::create(['name' => 'premium']);
-        Role::create(['name' => 'designer']); // Approved designers can save public templates
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => $guard]);
+        $userRole = Role::firstOrCreate(['name' => 'user', 'guard_name' => $guard]);
+        $premiumRole = Role::firstOrCreate(['name' => 'premium', 'guard_name' => $guard]);
+        Role::firstOrCreate(['name' => 'designer', 'guard_name' => $guard]); // Approved designers can save public templates
 
         // Assign all permissions to admin
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole->syncPermissions(Permission::where('guard_name', $guard)->get());
 
         // Assign basic permissions to user role
-        $userRole->givePermissionTo([
+        $userRole->syncPermissions([
             'create flip books',
             'edit flip books',
             'view flip books',
         ]);
 
         // Assign extended permissions to premium role
-        $premiumRole->givePermissionTo([
+        $premiumRole->syncPermissions([
             'create flip books',
             'edit flip books',
             'delete flip books',
@@ -74,28 +76,33 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // Create admin user
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@flipbook.com',
-            'password' => Hash::make('password'),
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@flipbook.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+            ]
+        );
         $admin->assignRole('admin');
 
         // Create regular user
-        $user = User::create([
-            'name' => 'Test User',
-            'email' => 'user@flipbook.com',
-            'password' => Hash::make('password'),
-        ]);
+        $user = User::firstOrCreate(
+            ['email' => 'user@flipbook.com'],
+            [
+                'name' => 'Test User',
+                'password' => Hash::make('password'),
+            ]
+        );
         $user->assignRole('user');
 
         // Create premium user
-        $premium = User::create([
-            'name' => 'Premium User',
-            'email' => 'premium@flipbook.com',
-            'password' => Hash::make('password'),
-        ]);
+        $premium = User::firstOrCreate(
+            ['email' => 'premium@flipbook.com'],
+            [
+                'name' => 'Premium User',
+                'password' => Hash::make('password'),
+            ]
+        );
         $premium->assignRole('premium');
     }
 }
-
