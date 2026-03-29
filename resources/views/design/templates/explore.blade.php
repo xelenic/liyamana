@@ -660,7 +660,48 @@
         align-items: flex-start;
     }
 
-    .explore-main { flex: 1; min-width: 0; }
+    .explore-main {
+        flex: 1;
+        min-width: 0;
+        position: relative;
+    }
+
+    /* Full-area preloader while JSON + thumbnails load */
+    #explorePreloaderOverlay {
+        position: absolute;
+        inset: 0;
+        z-index: 120;
+        min-height: 55vh;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 1rem;
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.97) 0%, rgba(241, 245, 249, 0.98) 100%);
+        backdrop-filter: blur(6px);
+        border-radius: 0 0 12px 12px;
+        pointer-events: all;
+    }
+    #explorePreloaderOverlay.is-visible {
+        display: flex;
+    }
+    .explore-preloader-spinner {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3px solid #e2e8f0;
+        border-top-color: var(--primary-color);
+        animation: explore-preloader-spin 0.75s linear infinite;
+    }
+    @keyframes explore-preloader-spin {
+        to { transform: rotate(360deg); }
+    }
+    .explore-preloader-text {
+        margin: 0;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #64748b;
+    }
 
     .explore-sidebar {
         width: 260px;
@@ -1206,6 +1247,10 @@
     <div class="explore-layout">
         <!-- Main Content -->
         <div class="explore-main">
+    <div id="explorePreloaderOverlay" class="is-visible" role="status" aria-live="polite" aria-busy="true">
+        <div class="explore-preloader-spinner" aria-hidden="true"></div>
+        <p class="explore-preloader-text">Loading templates…</p>
+    </div>
     <button type="button" class="mobile-filters-btn" id="mobileFiltersBtn" onclick="toggleMobileFilters()">
         <i class="fas fa-filter"></i> Filters
     </button>
@@ -1318,8 +1363,8 @@
         <p style="color: #64748b; font-size: 0.9375rem;">Try adjusting your filters or check back later.</p>
     </div>
 
-    <!-- Loading State -->
-    <div id="loadingState" class="text-center py-5">
+    <!-- Loading State (inline; primary UX is #explorePreloaderOverlay until thumbnails load) -->
+    <div id="loadingState" class="text-center py-5" style="display: none;">
         <i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: var(--primary-color);"></i>
         <p style="color: #64748b; margin-top: 1rem; font-size: 0.9375rem;">Loading templates...</p>
     </div>
@@ -1704,12 +1749,69 @@
         return div.innerHTML;
     }
 
+    function showExplorePreloader() {
+        const el = document.getElementById('explorePreloaderOverlay');
+        if (el) {
+            el.classList.add('is-visible');
+            el.setAttribute('aria-busy', 'true');
+        }
+    }
+
+    function hideExplorePreloader() {
+        const el = document.getElementById('explorePreloaderOverlay');
+        if (el) {
+            el.classList.remove('is-visible');
+            el.setAttribute('aria-busy', 'false');
+        }
+    }
+
+    function waitForImagesInRoot(root) {
+        if (!root) {
+            return Promise.resolve();
+        }
+        const imgs = Array.from(root.querySelectorAll('img')).filter(function(img) {
+            return img.src && img.getAttribute('src');
+        });
+        if (imgs.length === 0) {
+            return Promise.resolve();
+        }
+        return Promise.all(imgs.map(function(img) {
+            if (img.complete) {
+                return Promise.resolve();
+            }
+            return new Promise(function(resolve) {
+                var done = function() {
+                    resolve();
+                };
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
+            });
+        }));
+    }
+
+    /** After templates are in the DOM, wait for visible thumbnails (capped) then hide overlay. */
+    function finishExploreInitialPreload() {
+        var maxMs = 14000;
+        var roots = [
+            document.getElementById('templatesContainer'),
+            document.getElementById('featuredTemplatesContainer'),
+            document.getElementById('exploreSlider'),
+            document.getElementById('exploreHeroSection')
+        ].filter(Boolean);
+        var waitAll = Promise.all(roots.map(waitForImagesInRoot));
+        return Promise.race([
+            waitAll,
+            new Promise(function(r) { setTimeout(r, maxMs); })
+        ]).finally(hideExplorePreloader);
+    }
+
     function loadPublicTemplates() {
         const container = document.getElementById('templatesContainer');
         const emptyState = document.getElementById('emptyState');
         const loadingState = document.getElementById('loadingState');
 
-        loadingState.style.display = 'block';
+        showExplorePreloader();
+        if (loadingState) loadingState.style.display = 'none';
         container.innerHTML = '';
         emptyState.style.display = 'none';
 
@@ -1723,7 +1825,7 @@
         })
         .then(response => response.json())
         .then(data => {
-            loadingState.style.display = 'none';
+            if (loadingState) loadingState.style.display = 'none';
 
             if (data.success && data.templates && data.templates.length > 0) {
                 allTemplates = [...data.templates, ...(window.nanoBananaTemplates || [])];
@@ -1736,11 +1838,13 @@
                     emptyState.style.display = 'block';
                 }
             }
+            return finishExploreInitialPreload();
         })
         .catch(error => {
             console.error('Error loading templates:', error);
-            loadingState.style.display = 'none';
+            if (loadingState) loadingState.style.display = 'none';
             emptyState.style.display = 'block';
+            hideExplorePreloader();
         });
     }
 
@@ -2206,7 +2310,8 @@
             const img = document.createElement('img');
             img.src = thumbSrc;
             img.alt = template.name || 'Template preview';
-            img.loading = 'lazy';
+            img.loading = 'eager';
+            img.decoding = 'async';
             img.onerror = function() {
                 this.style.display = 'none';
                 const icon = document.createElement('div');
